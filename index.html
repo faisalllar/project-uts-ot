@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Hydroponic Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+
+        .stat-card .unit {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: #667eea;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            color: #555;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .month-tags {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .month-tag {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #fcc;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stat-card .value {
+                font-size: 2rem;
+            }
+            
+            .section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌿 IoT Hydroponic Monitor</h1>
+            <p>Real-time Sensor Data Visualization</p>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>🔥 Suhu Maksimum</h3>
+                <div class="value" id="max-temp">-</div>
+                <div class="unit">°C</div>
+            </div>
+            <div class="stat-card">
+                <h3>❄️ Suhu Minimum</h3>
+                <div class="value" id="min-temp">-</div>
+                <div class="unit">°C</div>
+            </div>
+            <div class="stat-card">
+                <h3>📊 Suhu Rata-rata</h3>
+                <div class="value" id="avg-temp">-</div>
+                <div class="unit">°C</div>
+            </div>
+        </div>
+
+        <!-- Sensor Data Section -->
+        <div class="section">
+            <div class="section-title">
+                <i>📈</i>
+                <span>Data Sensor dengan Suhu & Kelembapan Maksimum</span>
+            </div>
+            
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <div>Memuat data sensor...</div>
+            </div>
+            
+            <div id="error" class="error" style="display: none;"></div>
+            
+            <div class="table-container">
+                <table class="data-table" id="sensor-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Suhu</th>
+                            <th>Kelembapan</th>
+                            <th>Kecerahan</th>
+                            <th>Waktu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Month-Year Section -->
+        <div class="section">
+            <div class="section-title">
+                <i>📅</i>
+                <span>Bulan dengan Suhu Tertinggi</span>
+            </div>
+            <div id="month-list" class="month-tags"></div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchSensorData() {
+            try {
+                const response = await fetch('http://localhost:3000/sensor-data');
+                if (!response.ok) {
+                    throw new Error('Gagal mengambil data dari server');
+                }
+                const data = await response.json();
+                displayData(data);
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+                console.error('Fetch error:', error);
+            }
+        }
+
+        function displayData(data) {
+            // Hide loading, show table
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('sensor-table').style.display = 'table';
+
+            // Display basic stats
+            document.getElementById('max-temp').textContent = data.subumax;
+            document.getElementById('min-temp').textContent = data.subumin;
+            document.getElementById('avg-temp').textContent = data.suhurata;
+
+            // Display sensor data table
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+
+            data.nilai_suhu_max_humid_max.forEach(item => {
+                const key = Object.keys(item)[0];
+                const sensor = item[key];
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>#${sensor.idx}</td>
+                    <td><strong>${sensor.suhun}°C</strong></td>
+                    <td>${sensor.humid}%</td>
+                    <td>${sensor.kecerahan} lux</td>
+                    <td>${formatDateTime(sensor.timestamp)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Display month-year data
+            const monthList = document.getElementById('month-list');
+            monthList.innerHTML = '';
+            
+            data.month_year_max.forEach(item => {
+                const key = Object.keys(item)[0];
+                const monthData = item[key];
+                
+                const monthElement = document.createElement('div');
+                monthElement.className = 'month-tag';
+                monthElement.textContent = monthData.month_year;
+                monthList.appendChild(monthElement);
+            });
+        }
+
+        function formatDateTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('id-ID') + ' ' + date.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Load data when page opens
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchSensorData();
+        });
+    </script>
+</body>
+</html>
